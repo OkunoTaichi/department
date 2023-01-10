@@ -105,16 +105,26 @@ class ProductController extends Controller
     {
         $inputs = $request->all();
 
-        \DB::beginTransaction();
-        try{
-            Product::create($inputs);
-            \DB::commit();
-        }catch(\Throwable $e){
-            \DB::rollback();
-            abort(500);
+        //集計部門コード（ユニークキー）が存在しているかチェック
+        if (Product::where('SummarySectionCode', $inputs['SummarySectionCode'])->exists() === false){
+
+            \DB::beginTransaction();
+            try{
+                Product::create($inputs);
+                \DB::commit();
+            }catch(\Throwable $e){
+                \DB::rollback();
+                abort(500);
+            }
+            \Session::flash('err_msg' , '登録しました。');
+            return redirect( route('search.index') );
+
+        }else{
+            \Session::flash('err_msg' , '既にデータが存在しています。');
+            return redirect( route('search.index') );
         }
-        \Session::flash('err_msg' , '登録しました。');
-        return redirect( route('search.index') );
+
+        
     }
 // 新規作成フォーム表示ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 
@@ -195,16 +205,27 @@ class ProductController extends Controller
     public function destroy(Request $request)
     {
         $inputs = $request->all();
-        \DB::beginTransaction();
-        try{
-            Product::where('id', $inputs['id'])->delete();
-            \DB::commit();     
-        }catch(\Throwable $e){
-            \DB::rollback();
-            abort(500);
+
+        //デリート時にデータベースに値がない場合の分岐処理
+        if (Product::where('id', $inputs['id'])->exists() !== false){
+          
+            \DB::beginTransaction();
+            try{
+                Product::where('id', $inputs['id'])->delete();
+                \DB::commit();     
+            }catch(\Throwable $e){
+                \DB::rollback();
+                abort(500);
+            }
+
+            \Session::flash('err_msg' , '削除しました。');
+            return redirect( route('search.index') );
+
+        }else{
+            \Session::flash('err_msg' , 'データが存在しません。');
+            return redirect( route('search.index') );
         }
-        \Session::flash('err_msg' , '削除しました。');
-        return redirect( route('search.index') );
+
     }
 
    

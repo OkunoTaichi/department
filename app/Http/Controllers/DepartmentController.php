@@ -27,10 +27,10 @@ class DepartmentController extends Controller
      */
     public function list(Request $request)
     {
-        // ソートボタンを押下したら
         $inputs = Category::all();
+
+        // ソート機能
         $sort = $request->get('sort');
-     
         if ($sort) {
             // 表示順 > 部門コード順_ASC
             if ($sort === '1') {
@@ -47,28 +47,18 @@ class DepartmentController extends Controller
                 $inputs = Category::orderBy('PayFor', 'ASC')->orderBy('category_code', 'ASC')->get();
             }elseif ($sort === '6') {
                 $inputs = Category::orderBy('PayFor', 'DESC')->orderBy('category_code', 'ASC')->get();
-            // 立替区分 ありorなし > 部門コード順_ASC
+            // 非表示 ありorなし > 部門コード順_ASC
             }elseif ($sort === '7') {
                 $inputs = Category::orderBy('Hidden', 'ASC')->orderBy('category_code', 'ASC')->get();
             }elseif ($sort === '8') {
                 $inputs = Category::orderBy('Hidden', 'DESC')->orderBy('category_code', 'ASC')->get();
             }
         } else {
-            // リンク先からきた場合（ソートボタンを押下してない場合）
+            // 初期設定
             $inputs = Category::orderBy('category_code', 'ASC')->get();
         }
 
-
-        return view(
-            'department.list',
-            [
-                'inputs' => $inputs,
-                'sort' => $sort,
-                // 'hidden' => $hidden,
-            
-            ]
-        );
-
+        return view('department.list',['inputs' => $inputs, 'sort' => $sort]);
     }
 
      /**
@@ -105,17 +95,26 @@ class DepartmentController extends Controller
     public function store(DepartmentRequest $request)
     {
         $inputs = $request->all();
-        \DB::beginTransaction();
+
+        if (Category::where('category_code', $inputs['category_code'])->exists() === false){
+
+            \DB::beginTransaction();
    
-        try{
-            Category::create($inputs);
-            \DB::commit();
-        }catch(\Throwable $e){
-            \DB::rollback();
-            abort(500);
+            try{
+                Category::create($inputs);
+                \DB::commit();
+            }catch(\Throwable $e){
+                \DB::rollback();
+                abort(500);
+            }
+            \Session::flash('err_msg' , '登録しました。');
+            return redirect( route('department.list') );
+
+        }else{
+            \Session::flash('err_msg' , '既にデータが存在しています。');
+            return redirect( route('department.list') );
         }
-        \Session::flash('err_msg' , '登録しました。');
-        return redirect( route('department.list') );
+       
     }
 
      /**
@@ -184,18 +183,30 @@ class DepartmentController extends Controller
     public function delete(Request $request)
     {
         $inputs = $request->all();
-        $deleted_child = Category::where('id', $request->id)->first();
-        \DB::beginTransaction();
-        try{
-            $deleted_child->delete(); // このタイミングでcommentも一緒に削除されます。
-            Category::where('id', $inputs['id'])->delete();
-            \DB::commit();     
-        }catch(\Throwable $e){
-            \DB::rollback();
-            abort(500);
+        if (Category::where('id', $inputs['id'])->exists() !== false){
+
+            $deleted_child = Category::where('id', $request->id)->first();
+
+            \DB::beginTransaction();
+            try{
+                $deleted_child->delete(); // このタイミングでcommentも一緒に削除されます。
+                Category::where('id', $inputs['id'])->delete();
+                \DB::commit();     
+            }catch(\Throwable $e){
+                \DB::rollback();
+                abort(500);
+            }
+            \Session::flash('err_msg' , '削除をしました。');
+            return redirect( route('department.list') );
+
+        }else{
+
+            \Session::flash('err_msg' , 'データが存在しません。');
+            return redirect( route('department.list') );
+
         }
-        \Session::flash('err_msg' , '削除をしました。');
-        return redirect( route('department.list') );
+       
+        
     }
 
 

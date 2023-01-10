@@ -2,19 +2,15 @@
 
 namespace App\Models;
 
-//追加
-use App\Traits\OptimisticLockObserverTrait;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\OptimisticLockObserverTrait;
 
-use App\Models\SummarySection;
 
 class Department extends Model
 {
     use HasFactory;
-    //追加
     use SoftDeletes;
     use OptimisticLockObserverTrait;
 
